@@ -1,0 +1,296 @@
+/* ----------------------------------------------------------------------
+* Copyright (C) 2010-2014 ARM Limited. All rights reserved.
+*
+* $Date:        19. March 2015
+* $Revision:    V.1.4.5
+*
+* Project:      CMSIS DSP Library
+* Title:        arm_rfft_init_q15.c
+*
+* Description:  RFFT & RIFFT Q15 initialisation function
+*
+* Target Processor: Cortex-M4/Cortex-M3/Cortex-M0
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions
+* are met:
+*   - Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   - Redistributions in binary form must reproduce the above copyright
+*     notice, this list of conditions and the following disclaimer in
+*     the documentation and/or other materials provided with the
+*     distribution.
+*   - Neither the name of ARM LIMITED nor the names of its contributors
+*     may be used to endorse or promote products derived from this
+*     software without specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+* -------------------------------------------------------------------- */
+
+
+#include "arm_math.h"
+#include "arm_common_tables.h"
+#include "arm_const_structs.h"
+
+/**
+* @ingroup groupTransforms
+*/
+
+/**
+* @addtogroup RealFFT
+* @{
+*/
+
+
+
+/**
+* \par
+* Generation fixed-point realCoefAQ15 array in Q15 format:
+* \par
+* n = 256
+* <pre>for (i = 0; i < n; i++)
+*  {
+*    pATable[2 * i] = 0.5 * (1.0 - sin (2 * PI / (double) (2 * n) * (double) i));
+*    pATable[2 * i + 1] = 0.5 * (-1.0 * cos (2 * PI / (double) (2 * n) * (double) i));
+*  } </pre>
+* \par
+* Convert to fixed point Q15 format
+*       round(pATable[i] * pow(2, 15))
+*/
+static const q15_t ALIGN4 realCoefAQ15[256] = {
+    0x4000, 0x3f37, 0x3e6e, 0x3da5,
+    0x3cdc, 0x3c13, 0x3b4b, 0x3a82,
+    0x39ba, 0x38f2, 0x382a, 0x3763,
+    0x369c, 0x35d5, 0x350f, 0x3449,
+    0x3384, 0x32bf, 0x31fa, 0x3136,
+    0x3073, 0x2fb0, 0x2eee, 0x2e2d,
+    0x2d6c, 0x2cac, 0x2bed, 0x2b2e,
+    0x2a70, 0x29b4, 0x28f7, 0x283c,
+    0x2782, 0x26c9, 0x2611, 0x2559,
+    0x24a3, 0x23ee, 0x233a, 0x2287,
+    0x21d5, 0x2124, 0x2074, 0x1fc6,
+    0x1f19, 0x1e6d, 0x1dc3, 0x1d19,
+    0x1c72, 0x1bcb, 0x1b26, 0x1a82,
+    0x19e0, 0x193f, 0x18a0, 0x1802,
+    0x1766, 0x16cb, 0x1632, 0x159b,
+    0x1505, 0x1471, 0x13df, 0x134e,
+    0x12bf, 0x1231, 0x11a6, 0x111c,
+    0x1094, 0x100e, 0xf8a, 0xf07,
+    0xe87, 0xe08, 0xd8c, 0xd11,
+    0xc98, 0xc21, 0xbad, 0xb3a,
+    0xac9, 0xa5b, 0x9ee, 0x983,
+    0x91b, 0x8b5, 0x850, 0x7ee,
+    0x78f, 0x731, 0x6d5, 0x67c,
+    0x625, 0x5d0, 0x57e, 0x52d,
+    0x4df, 0x493, 0x44a, 0x403,
+    0x3be, 0x37b, 0x33b, 0x2fd,
+    0x2c1, 0x288, 0x251, 0x21d,
+    0x1eb, 0x1bb, 0x18e, 0x163,
+    0x13b, 0x115, 0xf1, 0xd0,
+    0xb1, 0x95, 0x7b, 0x64,
+    0x4f, 0x3c, 0x2c, 0x1f,
+    0x14, 0xb, 0x5, 0x1,
+    0x0, 0x1, 0x5, 0xb,
+    0x14, 0x1f, 0x2c, 0x3c,
+    0x4f, 0x64, 0x7b, 0x95,
+    0xb1, 0xd0, 0xf1, 0x115,
+    0x13b, 0x163, 0x18e, 0x1bb,
+    0x1eb, 0x21d, 0x251, 0x288,
+    0x2c1, 0x2fd, 0x33b, 0x37b,
+    0x3be, 0x403, 0x44a, 0x493,
+    0x4df, 0x52d, 0x57e, 0x5d0,
+    0x625, 0x67c, 0x6d5, 0x731,
+    0x78f, 0x7ee, 0x850, 0x8b5,
+    0x91b, 0x983, 0x9ee, 0xa5b,
+    0xac9, 0xb3a, 0xbad, 0xc21,
+    0xc98, 0xd11, 0xd8c, 0xe08,
+    0xe87, 0xf07, 0xf8a, 0x100e,
+    0x1094, 0x111c, 0x11a6, 0x1231,
+    0x12bf, 0x134e, 0x13df, 0x1471,
+    0x1505, 0x159b, 0x1632, 0x16cb,
+    0x1766, 0x1802, 0x18a0, 0x193f,
+    0x19e0, 0x1a82, 0x1b26, 0x1bcb,
+    0x1c72, 0x1d19, 0x1dc3, 0x1e6d,
+    0x1f19, 0x1fc6, 0x2074, 0x2124,
+    0x21d5, 0x2287, 0x233a, 0x23ee,
+    0x24a3, 0x2559, 0x2611, 0x26c9,
+    0x2782, 0x283c, 0x28f7, 0x29b4,
+    0x2a70, 0x2b2e, 0x2bed, 0x2cac,
+    0x2d6c, 0x2e2d, 0x2eee, 0x2fb0,
+    0x3073, 0x3136, 0x31fa, 0x32bf,
+    0x3384, 0x3449, 0x350f, 0x35d5,
+    0x369c, 0x3763, 0x382a, 0x38f2,
+    0x39ba, 0x3a82, 0x3b4b, 0x3c13,
+    0x3cdc, 0x3da5, 0x3e6e, 0x3f37,
+};
+
+/**
+* \par
+* Generation of real_CoefB array:
+* \par
+* n = 256
+* <pre>for (i = 0; i < n; i++)
+*  {
+*    pBTable[2 * i] = 0.5 * (1.0 + sin (2 * PI / (double) (2 * n) * (double) i));
+*    pBTable[2 * i + 1] = 0.5 * (1.0 * cos (2 * PI / (double) (2 * n) * (double) i));
+*  } </pre>
+* \par
+* Convert to fixed point Q15 format
+*       round(pBTable[i] * pow(2, 15))
+*
+*/
+static const q15_t ALIGN4 realCoefBQ15[256] = {
+    0x4000, 0x40c9, 0x4192, 0x425b,
+    0x4324, 0x43ed, 0x44b5, 0x457e,
+    0x4646, 0x470e, 0x47d6, 0x489d,
+    0x4964, 0x4a2b, 0x4af1, 0x4bb7,
+    0x4c7c, 0x4d41, 0x4e06, 0x4eca,
+    0x4f8d, 0x5050, 0x5112, 0x51d3,
+    0x5294, 0x5354, 0x5413, 0x54d2,
+    0x5590, 0x564c, 0x5709, 0x57c4,
+    0x587e, 0x5937, 0x59ef, 0x5aa7,
+    0x5b5d, 0x5c12, 0x5cc6, 0x5d79,
+    0x5e2b, 0x5edc, 0x5f8c, 0x603a,
+    0x60e7, 0x6193, 0x623d, 0x62e7,
+    0x638e, 0x6435, 0x64da, 0x657e,
+    0x6620, 0x66c1, 0x6760, 0x67fe,
+    0x689a, 0x6935, 0x69ce, 0x6a65,
+    0x6afb, 0x6b8f, 0x6c21, 0x6cb2,
+    0x6d41, 0x6dcf, 0x6e5a, 0x6ee4,
+    0x6f6c, 0x6ff2, 0x7076, 0x70f9,
+    0x7179, 0x71f8, 0x7274, 0x72ef,
+    0x7368, 0x73df, 0x7453, 0x74c6,
+    0x7537, 0x75a5, 0x7612, 0x767d,
+    0x76e5, 0x774b, 0x77b0, 0x7812,
+    0x7871, 0x78cf, 0x792b, 0x7984,
+    0x79db, 0x7a30, 0x7a82, 0x7ad3,
+    0x7b21, 0x7b6d, 0x7bb6, 0x7bfd,
+    0x7c42, 0x7c85, 0x7cc5, 0x7d03,
+    0x7d3f, 0x7d78, 0x7daf, 0x7de3,
+    0x7e15, 0x7e45, 0x7e72, 0x7e9d,
+    0x7ec5, 0x7eeb, 0x7f0f, 0x7f30,
+    0x7f4f, 0x7f6b, 0x7f85, 0x7f9c,
+    0x7fb1, 0x7fc4, 0x7fd4, 0x7fe1,
+    0x7fec, 0x7ff5, 0x7ffb, 0x7fff,
+    0x7fff, 0x7fff, 0x7ffb, 0x7ff5,
+    0x7fec, 0x7fe1, 0x7fd4, 0x7fc4,
+    0x7fb1, 0x7f9c, 0x7f85, 0x7f6b,
+    0x7f4f, 0x7f30, 0x7f0f, 0x7eeb,
+    0x7ec5, 0x7e9d, 0x7e72, 0x7e45,
+    0x7e15, 0x7de3, 0x7daf, 0x7d78,
+    0x7d3f, 0x7d03, 0x7cc5, 0x7c85,
+    0x7c42, 0x7bfd, 0x7bb6, 0x7b6d,
+    0x7b21, 0x7ad3, 0x7a82, 0x7a30,
+    0x79db, 0x7984, 0x792b, 0x78cf,
+    0x7871, 0x7812, 0x77b0, 0x774b,
+    0x76e5, 0x767d, 0x7612, 0x75a5,
+    0x7537, 0x74c6, 0x7453, 0x73df,
+    0x7368, 0x72ef, 0x7274, 0x71f8,
+    0x7179, 0x70f9, 0x7076, 0x6ff2,
+    0x6f6c, 0x6ee4, 0x6e5a, 0x6dcf,
+    0x6d41, 0x6cb2, 0x6c21, 0x6b8f,
+    0x6afb, 0x6a65, 0x69ce, 0x6935,
+    0x689a, 0x67fe, 0x6760, 0x66c1,
+    0x6620, 0x657e, 0x64da, 0x6435,
+    0x638e, 0x62e7, 0x623d, 0x6193,
+    0x60e7, 0x603a, 0x5f8c, 0x5edc,
+    0x5e2b, 0x5d79, 0x5cc6, 0x5c12,
+    0x5b5d, 0x5aa7, 0x59ef, 0x5937,
+    0x587e, 0x57c4, 0x5709, 0x564c,
+    0x5590, 0x54d2, 0x5413, 0x5354,
+    0x5294, 0x51d3, 0x5112, 0x5050,
+    0x4f8d, 0x4eca, 0x4e06, 0x4d41,
+    0x4c7c, 0x4bb7, 0x4af1, 0x4a2b,
+    0x4964, 0x489d, 0x47d6, 0x470e,
+    0x4646, 0x457e, 0x44b5, 0x43ed,
+    0x4324, 0x425b, 0x4192, 0x40c9,
+};
+
+/**
+* @brief  Initialization function for the Q15 RFFT/RIFFT.
+* @param[in, out] *S             points to an instance of the Q15 RFFT/RIFFT structure.
+* @param[in]      fftLenReal     length of the FFT.
+* @param[in]      ifftFlagR      flag that selects forward (ifftFlagR=0) or inverse (ifftFlagR=1) transform.
+* @param[in]      bitReverseFlag flag that enables (bitReverseFlag=1) or disables (bitReverseFlag=0) bit reversal of output.
+* @return       The function returns ARM_MATH_SUCCESS if initialization is successful or ARM_MATH_ARGUMENT_ERROR if <code>fftLenReal</code> is not a supported value.
+*
+* \par Description:
+* \par
+* The parameter <code>fftLenReal</code> Specifies length of RFFT/RIFFT Process. Supported FFT Lengths are 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192.
+* \par
+* The parameter <code>ifftFlagR</code> controls whether a forward or inverse transform is computed.
+* Set(=1) ifftFlagR to calculate RIFFT, otherwise RFFT is calculated.
+* \par
+* The parameter <code>bitReverseFlag</code> controls whether output is in normal order or bit reversed order.
+* Set(=1) bitReverseFlag for output to be in normal order otherwise output is in bit reversed order.
+* \par
+* This function also initializes Twiddle factor table.
+*/
+arm_status arm_rfft_init_q15(
+    arm_rfft_instance_q15 *S,
+    uint32_t fftLenReal,
+    uint32_t ifftFlagR,
+    uint32_t bitReverseFlag)
+{
+    /*  Initialise the default arm status */
+    arm_status status = ARM_MATH_SUCCESS;
+
+    /*  Initialize the Real FFT length */
+    S->fftLenReal = (uint16_t) fftLenReal;
+
+    /*  Initialize the Twiddle coefficientA pointer */
+    S->pTwiddleAReal = (q15_t *) realCoefAQ15;
+
+    /*  Initialize the Twiddle coefficientB pointer */
+    S->pTwiddleBReal = (q15_t *) realCoefBQ15;
+
+    /*  Initialize the Flag for selection of RFFT or RIFFT */
+    S->ifftFlagR = (uint8_t) ifftFlagR;
+
+    /*  Initialize the Flag for calculation Bit reversal or not */
+    S->bitReverseFlagR = (uint8_t) bitReverseFlag;
+
+    /*  Initialization of coef modifier depending on the FFT length */
+    switch (S->fftLenReal) {
+    case 256u:
+        S->twidCoefRModifier = 1u;
+        S->pCfft = &arm_cfft_sR_q15_len128;
+        break;
+#if 0
+    case 128u:
+        S->twidCoefRModifier = 2u;
+        S->pCfft = &arm_cfft_sR_q15_len64;
+        break;
+    case 64u:
+        S->twidCoefRModifier = 4u;
+        S->pCfft = &arm_cfft_sR_q15_len32;
+        break;
+    case 32u:
+        S->twidCoefRModifier = 8u;
+        S->pCfft = &arm_cfft_sR_q15_len16;
+        break;
+#endif
+    default:
+        /*  Reporting argument error if rfftSize is not valid value */
+        status = ARM_MATH_ARGUMENT_ERROR;
+        break;
+    }
+
+    /* return the status of RFFT Init function */
+    return (status);
+}
+
+/**
+* @} end of RealFFT group
+*/
