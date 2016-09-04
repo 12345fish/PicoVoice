@@ -33,28 +33,30 @@ s32 *g_pow_spct = (s32*)g_fft_out_buf; //[MFCC_TRI_NUM];
 
 // 计算FFT功率谱
 // 参数：输入/输出buf(公用)，FFT点数(必须为256)
-// 返回值：0成功/-1失败
-s32 fft_pwr(s16 *buf, u16 len)
+// 返回值：功率谱指针，出错返回null
+u32 *fft_pwr(s16 *buf, u16 len)
 {
-    //u32 i;
-    //s32 real;
-    //s32 imag;
+    u16 i;
+    s32 real;
+    s32 imag;
+    u32 *pwr_buf = (u32*)buf;   // 复用输入buf
 
     if (MFCC_FFT_POINT != len) {
-        return -1;
+        return NULL;
     }
 
     arm_rfft_q15(&g_fft_inst, (q15_t*)buf, g_fft_out_buf);
     
-    arm_cmplx_mag_squared_q15(g_fft_out_buf, (q15_t*)buf, MFCC_FFT_POINT / 2);
+    //arm_cmplx_mag_squared_q15(g_fft_out_buf, (q15_t*)pwr_buf, MFCC_FFT_POINT / 2);
 
-    /*for (i = 0; i < MFCC_FFT_POINT / 2; i++) {
-        real = (s16)(pwr_out[i]);
-        imag = (s16)(pwr_out[i] >> 16);
-        pwr_out[i] = real * real + imag * imag;
-    }*/
+    for (i = 0; i < MFCC_FFT_POINT / 2; i++) {
+        real = g_fft_out_buf[i * 2];
+        imag = g_fft_out_buf[i * 2 + 1];
+        pwr_buf[i] = real * real + imag * imag;
+    }
+    pwr_buf[0] = 0;
 
-    return 0;
+    return pwr_buf;
 }
 
 /*-----------------------------------*/
@@ -77,9 +79,9 @@ s32 mfcc_init(void)
 s32 mfcc_frame(s16 *voice_ptr, u32 voice_len, mfcc_frame_t *mfcc_out)
 {
     const s8 *p_dct;
-    u16 *frq_spct;
+    u32 *frq_spct;
     s32 ffe_val;
-    s16 mfcc_val;
+    s32 mfcc_val;
     u8 hamm_val;
     u32 i;
     u32 j;
@@ -88,7 +90,7 @@ s32 mfcc_frame(s16 *voice_ptr, u32 voice_len, mfcc_frame_t *mfcc_out)
         return -1;
     }
 
-    for (i = VOICE_FRAME_LEN; i > 0; i--) {
+    for (i = VOICE_FRAME_LEN - 1; i > 0; i--) {
         // 预加重，第一个点未处理
         ffe_val = (s32)voice_ptr[i] - (s32)voice_ptr[i - 1] * MFCC_HP_RATIO / MFCC_HP_SCALE;
         // 加汉明窗
@@ -99,12 +101,13 @@ s32 mfcc_frame(s16 *voice_ptr, u32 voice_len, mfcc_frame_t *mfcc_out)
         }
         voice_ptr[i] = (s16)(ffe_val * hamm_val / MFCC_HAMM_SCALE);
     }
+	voice_ptr[0] = (s16)((s32)voice_ptr[0] * hamm_tab_256[0] / MFCC_HAMM_SCALE);
 
     // FFT能量谱
-    if (0 != fft_pwr(voice_ptr, VOICE_FRAME_LEN)) {
+    frq_spct = fft_pwr(voice_ptr, VOICE_FRAME_LEN);
+    if (NULL == frq_spct) {
         return -1;
     }
-    frq_spct = (u16*)voice_ptr;
 
     // 加三角滤波器
     g_pow_spct[0] = 0;
@@ -131,7 +134,11 @@ s32 mfcc_frame(s16 *voice_ptr, u32 voice_len, mfcc_frame_t *mfcc_out)
     // 三角滤波器输出取对数
     for (j = 0; j < MFCC_TRI_NUM; j++) {
         //g_pow_spct[j] = (u32)(log(g_pow_spct[j]) * 128); // 取对数后 乘128 提升数据有效位数
-        g_pow_spct[j] = logfix(g_pow_spct[j], 7);
+        g_pow_spct[j] = log2fix(g_pow_spct[j], 7);
+        g_pow_spct[j] += 7 << 7;
+        if (g_pow_spct[j] < 0) {
+            g_pow_spct[j] = 0;
+        }
     }
 
     // 反离散余弦变换
@@ -141,7 +148,7 @@ s32 mfcc_frame(s16 *voice_ptr, u32 voice_len, mfcc_frame_t *mfcc_out)
         for (i = 0; i < MFCC_TRI_NUM; i++) {
             mfcc_val += ((s32)g_pow_spct[i] * p_dct[i] / MFCC_DCT_SCALE);
         }
-        mfcc_out->mfcc_dat[j] = mfcc_val;
+        mfcc_out->mfcc_dat[j] = (s16)mfcc_val;
         p_dct += MFCC_TRI_NUM;
     }
 

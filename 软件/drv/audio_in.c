@@ -62,6 +62,8 @@ static void tim_config(u16 rate)
     TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
     TIM_OCStructInit(&TIM_OCInitStructure);
 
+    DBGMCU_APB2PeriphConfig(DBGMCU_TIM1_STOP, ENABLE);
+
     /* Time base configuration */
     TIM_TimeBaseStructure.TIM_Period = (SystemCoreClock / rate - 1);
     TIM_TimeBaseStructure.TIM_Prescaler = 0x0;

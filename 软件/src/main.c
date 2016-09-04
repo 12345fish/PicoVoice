@@ -13,8 +13,8 @@ int main(void)
     //LED_Init();
     
     voice_init();
+    voice_test();
     voice_adapt();
-    //voice_test();
     
     while (1) {
         voice_process();

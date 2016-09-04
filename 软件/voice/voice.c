@@ -67,7 +67,7 @@ s32 voice_frame_shift(void)
     u32 i;
     
     for (i = 0; i < VOICE_FRAME_LEN; i++) {
-        g_voice_frame[i] -= g_vad.adapt_arg.mid_val;
+        g_voice_frame[i] = (g_voice_frame[i] - g_vad.adapt_arg.mid_val) << 3;
     }
     
     return 0;
@@ -116,11 +116,29 @@ s32 voice_process(void)
 
 /*-----------------------------------*/
 
+void fill_square(s16 *buf, u16 n, s16 min, s16 max, u16 step)
+{
+    u16 i;
+    u16 j;
+    
+    for (i = 0; i < n; i += step * 2) {
+        for (j = 0; j < step; j++) {
+            *buf++ = min;
+        }
+        for (j = 0; j < step; j++) {
+            *buf++ = max;
+        }
+    }
+}
+
 volatile u32 t, t1, t2;
 
 void voice_test(void)
 {
     //fft_test();
+
+    fill_square(g_voice_frame, VOICE_FRAME_LEN, -2048, 2048, 2);
+    //voice_frame_shift();
     
     t = micros();
     vad_adapt(&g_vad, g_voice_frame, VOICE_FRAME_LEN);

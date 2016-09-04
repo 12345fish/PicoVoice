@@ -74,7 +74,7 @@ int32_t logfix (uint32_t x, size_t precision)
 {
     uint64_t t;
 
-    t = log2fix(x, precision) * INV_LOG2_E_Q1DOT31;
+    t = (uint64_t)log2fix(x, precision) * INV_LOG2_E_Q1DOT31;
 
     return t >> 31;
 }
@@ -83,7 +83,7 @@ int32_t log10fix (uint32_t x, size_t precision)
 {
     uint64_t t;
 
-    t = log2fix(x, precision) * INV_LOG2_10_Q1DOT31;
+    t = (uint64_t)log2fix(x, precision) * INV_LOG2_10_Q1DOT31;
 
     return t >> 31;
 }
